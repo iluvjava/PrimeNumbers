@@ -1,14 +1,24 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.PrimitiveIterator.OfInt;
+import java.util.PrimitiveIterator.OfLong;
 import java.util.Random;
 import java.util.Stack;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 /**
  * 
@@ -22,30 +32,30 @@ public class FuckPrimeNumbers
 {
 	public static void main(String[] args) throws Exception 
 	{
-		TreeSet<Integer> s = new TreeSet<Integer>();
-		long  time = System.currentTimeMillis();
-		int counting =0;
-		for(int i =2;i<=999;i++)
-		{
-			if(isProbablePrime(i))
-			{
-				counting++;
-				s.add(i);
-			}
-		}
-		time = System.currentTimeMillis()-time;
+//		TreeSet<Integer> s = new TreeSet<Integer>();
+//		long  time = System.currentTimeMillis();
+//		int counting =0;
+//		for(int i =2;i<=999;i++)
+//		{
+//			if(isProbablePrime(i))
+//			{
+//				counting++;
+//				s.add(i);
+//			}
+//		}
+//		time = System.currentTimeMillis()-time;
+//		
+//		System.out.println("There are: "+counting);
+//		
+//		System.out.println("It takes: "+time);
+//		
+//		FilterPrimes fp = new FilterPrimes(s); 
+//		fp.filter();
+//		
+//		System.out.print("Deterministic test shows: "+fp.G_notprimes.size());
+//		
 		
-		System.out.println("There are: "+counting);
-		
-		System.out.println("It takes: "+time);
-		
-		FilterPrimes fp = new FilterPrimes(s); 
-		fp.filter();
-		
-		System.out.print("Deterministic test shows: "+fp.G_notprimes.size());
-		
-		
-			
+		FuckPrimeNumbers.FilterPrimes_SpeedEdition.main(args);
 		
 	}
 	
@@ -81,22 +91,37 @@ public class FuckPrimeNumbers
 	 * 
 	 * Determine the primality of a number using fermat test; 
 	 * and gcd. 
+	 * 
+	 * if(input>than 2^32), return false to prevent overflow. 
 	 * @param arg
 	 * @return
 	 */
-	public static boolean isProbablePrime(int arg) 
+	public static boolean isProbablePrime(long arg) 
 	{
+		
+		if(arg>=0xFFFFFFFFL){return false;}
+		
 		if(arg<3)return true;
 		// fermat little theorem
 		Random rd = new Random();
-		for(int i =0; i <50; i++)
+		
+		
+			int randombound = (int) (arg-2);
+			
+		if(randombound<0)
 		{
-			int r = rd.nextInt(arg-2)+2;
-			//print("random number: "+r);
+			randombound = 0x0effffff;
+		}
+		
+		
+		for(int i =0; i <100; i++)
+		{
+			int r = rd.nextInt(randombound)+2;
+			
 			if
 			(GCD(arg,r)!=1||!fermatTest(arg,r))
 			{
-				//print(arg+" is not a prime");
+				
 				return false; // failed...
 			}
 			
@@ -112,7 +137,7 @@ public class FuckPrimeNumbers
 	 * @param a
 	 * @return
 	 */
-	public static boolean isDefinitelyAPrime(int a)
+	public static boolean isDefinitelyAPrime(long a)
 	{	
 		if(a==2)return true;
 		if(a%2==0||a==1)return false;
@@ -130,9 +155,11 @@ public class FuckPrimeNumbers
 		}
 		return true;
 	}
+	
+	
 
 
-	public static boolean fermatTest(int target, int witness)
+	public static boolean fermatTest(long target, long witness)
 	{
 		// pass test
 		if(powerMod(witness,target-1,target)==1)
@@ -144,20 +171,6 @@ public class FuckPrimeNumbers
 		
 	}
 	
-	/**
-	 * gives the bit value at a position of a long number. 
-	 * 
-	 */
-	public static byte bitat(byte posi,long target)
-	{
-		target = target>>(posi-1);
-		
-		target = target<<(63);
-		
-		target = target>>(63);
-		
-		return (byte) target;
-	}
 	
 	
 	private static void print(String s)
@@ -165,14 +178,27 @@ public class FuckPrimeNumbers
 		System.out.println(s);
 	}
 	
-	
-	public static long powerMod(long factor , int power, int modu)
+	public static long intshifttolong(int a)
 	{
+		long result = (long)a;
+		if(a<0)
+		{
+			result = 0xffffffff00000000L^result;
+			return result;
+		}
+		return result;
+	}
+	
+	
+	public static long powerMod(long factor , long power, long modu)
+	{
+		
 		long result = 1;
 		while(power>=1)
 		{
 			if(power%2==1)
 			{	
+				
 				result =(result*factor)%modu;
 			}
 			power/=2;
@@ -186,6 +212,157 @@ public class FuckPrimeNumbers
 	
 	
 	
+	
+	
+	/**
+	 * return the number that is overflowed in turn of long
+	 * 
+	 * a*b = long.max*c +remainder ; c is the number got returned. 
+	 */
+//	public static long getoverflow(long a, long b)
+//	{
+//		if(a*b>0)
+//		return 0; 
+//		else
+//		{
+//			
+//		}
+//	}
+//	
+	public static String getBinary(long a)
+	{
+//		boolean[] result = new boolean[64];
+//		boolean temp = false;
+//		 for(int i =0; i!=64; i++)
+//		 {
+//			 if(a%2==1)
+//			 result[i]=true;
+//			 a=a>>1;
+//			if(a==0)break;
+//		 }
+//		 System.out.println(Arrays.toString(result));
+//		return result;
+		
+		
+		StringBuilder sb = new StringBuilder();
+		
+		for(byte i =63; i>=0; i--)
+		{
+		if(isOneInBIN(a,i))
+		{
+			sb.append("1");
+		}
+		else
+		{
+			sb.append("0");
+		}
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * At position of posi at a is one, we will return true;
+	 * 0 is the first digit in binary. 
+	 * @param a
+	 * @param posi
+	 * @return
+	 */
+	public static boolean isOneInBIN(long a, byte posi)
+	{
+		if((a=a>>posi)%2==1)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	
+	/**
+	 * a*b = (2^63)n+R
+	 * n is the overflow; 
+	 * How much is overflowed from long?
+	 * 
+	 * The binary extension of the product. beyond the 63th digit
+	 * the 64 digit is included in the overflow. 
+	 * 
+	 * return both the overflow and under flow value. 
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	public static long getOverFlow(long a, long b)
+	{
+		if(a<0||b<0)
+		{
+			//>> operator will not work;
+			throw new ArithmeticException();
+			
+		}
+		long overflow = 0;
+		long underflow = 0;
+		for(byte i =0; i<64;i++)
+		{
+			if(isOneInBIN(a,  i))
+			{
+				long shift = b<<i;
+				overflow+= b>>>(63-i);
+				
+				if(shift<0)shift^=0x8000000000000000L;
+				if((underflow+=shift)<0)
+				{
+					underflow^=0x8000000000000000L;
+					overflow++;
+				}
+
+				
+			}
+			
+		}
+		return overflow;
+		
+	}
+	
+	/**
+	 * A method that can return (a*b)even if over a*b 
+	 * overflow long; 
+	 * 
+	 * Parse the overflow unmber into lots of 
+	 * @param a
+	 * @param b
+	 * @param m
+	 * @return
+	 */
+	public static long multiplicationModulate(long a, long b, long m)
+	{
+		long overflow = getOverFlow( a,  b);
+		
+		if(overflow ==0)
+		{
+			return (a*b)%m;
+		}
+		else
+		{	//a*b = 
+			//overflow*(max+1)
+			//Overflow*Max+overflow=?
+			
+			long underflow = a*b;
+			if(underflow<0)
+			{
+				underflow = underflow^0x8000000000000000L;
+			}
+			
+			long partresult = 
+			return (partresult+underflow%m)%m;
+		}
+	}
+	
+	
+	
+	
+	
+	//private static final long twopow62=
 	/**
 	 * This class will get a set of numbers and return 
 	 * Numbers that are primes in the set, using 
@@ -423,14 +600,103 @@ public class FuckPrimeNumbers
 		
 	}
 	
-	public static class filterProbablePrimes
+	
+	public static class PrimeLibrary
 	{
+		private int[] G_primelist;
 		
+		private PrimeLibrary()
+		{
+			System.out.println("Instanciating prime library. ");
+			List<Integer> something = new ArrayList<Integer>();
+			IntStream st=IntStream.range(2, 65536).parallel()
+			.filter(l->isProbablePrime(l)).filter(l->FuckPrimeNumbers.isDefinitelyAPrime(l)).sorted();
+			OfInt itr = st.iterator();
+			
+			while(itr.hasNext())
+			{
+				something.add(itr.next());
+			}
+			this.G_primelist = new int[something.size()];
+			for(int i = 0; i <something.size();i++)
+			{
+				this.G_primelist[i] = something.get(i);
+			}
+			something = null;
+			System.out.println("Instance created, we have a reference library now. ");
+		}
+		/**
+		 * Use a preestabished prime library to speed up the definite prime process.
+		 * @param a
+		 * @return
+		 */
+		public boolean isDefinitelyAPrime(long a)
+		{	
+			if(a==2)return true;
+			if(a%2==0||a==1)return false;
+			
+			int lowbound = (int)Math.sqrt(a);
+			for(int i : this.G_primelist)
+			{
+				if(a%i==0)return false;
+				if(i>=lowbound)break;
+			}
+			return true;
+		}
+		
+		public static PrimeLibrary getAnInstance()
+		{
+			return new PrimeLibrary();
+		}
 		
 		
 	}
 		
+	
+	/**
+	 * Let's quit the classical programming and look for something that is new, ok? 
+	 * We want to use some stream api! 
+	 * @author victo
+	 *
+	 */
+	public static class FilterPrimes_SpeedEdition
+	{
+		public static void main(String[] args) throws FileNotFoundException
+		{
+			
+			
+			PrimeLibrary pl = PrimeLibrary.getAnInstance();
+			
+			
+			
+			//There is a non static method in the list class that will return the 
+			// the collection as a stream. 
+			IntStream st=IntStream.range(2,1000000000).parallel()
+					
+					.filter(l->isProbablePrime(l)).filter(l->pl.isDefinitelyAPrime(l)).sorted();
+			
+			// There is a non staticc method in the stream class that will 
+			// accept a collectors object and return the stream as a list, 
+			// the collectior object is created with a static method in 
+			// the class collector. 
+			int[] itr = st.toArray();
+			
+			st=null;
+			
+			PrintStream ps = new PrintStream(new File("E:/WTFsomanyprimes.txt"));
+			
+			for(long temp : itr)
+			{
+				System.out.println(temp);
+				ps.print(temp+" ");
+				
+			}
+			System.out.print("number of primes found: "+itr.length);
+		}
 		
 		
+		
+	}
 }
+
 
